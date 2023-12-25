@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Artistic</title>
 
-    <!-- Bootstarp CSS -->
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
 
@@ -82,6 +82,7 @@
                     </div>
                 </div>
             </div>
+        </div>
     </section>
     <!-- hero: end -->
 
@@ -89,31 +90,50 @@
     <main class="vh-100 d-grid align-items-center" id="main">
         <div class="container">
             <h1 class="text-center">
-                Lorem ipsum dolor sit
+                Image Processing with Artistic
             </h1>
-            <div class="row">
-                <div class="col-md-6 mb-md-0 mb-3">
+            <div class="row mb-3">
+                <div class="col-md-4 mx-auto">
                     <form method="post" id="imageForm">
                         <div class="mb-3">
-                            <input type="file" class="form-control" name="inputImage" id="inputImage" multiple="false"
+                            <label for="inputImage" class="form-label">Upload Image:</label>
+                            <input type="file" class="form-control" name="inputImage" id="inputImage" accept="image/*"
                                 required>
                         </div>
                         <div class="mb-3">
-                            <select class="form-select" name="" id="" required>
+                            <label for="operationSelect" class="form-label">Select Operation:</label>
+                            <select class="form-select" name="operationSelect" id="operationSelect" required>
                                 <option disabled selected>Select Operation</option>
-                                <option value="">Category 1</option>
+                                <option value="grayscale">Grayscale</option>
+                                <option value="colorRangeFilter">Color Range Filter</option>
                             </select>
                         </div>
-                        <button type="submit" class="btn btn-primary">Submit</button>
+                        <button type="button" class="btn btn-primary" onclick="processImage()">Process
+                            Image</button>
                     </form>
                 </div>
-                <div class="col-md-6 mb-md-0 mb-3">
-                    <img src="" id="uploadedImage" class="img-fluid w-100" alt="">
+            </div>
+            <div class="row my-5">
+                <div class="col-md-6 mb-md-0 mb-3 text-center">
+                    <img src="" id="uploadedImage" class="img-fluid w-100" alt="Uploaded Image">
+                </div>
+                <div class="col-md-6 mb-md-0 mb-3 text-center">
+                    <img src="" id="processedImage" class="img-fluid w-100 mt-3" alt="Processed Image">
                 </div>
             </div>
         </div>
     </main>
     <!-- main: end -->
+
+    <!-- footer: start -->
+    <footer class="bg-dark py-5">
+        <div class="container">
+            <p class="text-center text-white mb-0">
+                &copy; 2023 Artistic. All Rights Reserved.
+            </p>
+        </div>
+    </footer>
+    <!-- footer: end -->
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
@@ -125,6 +145,13 @@
         integrity="sha512-jEnuDt6jfecCjthQAJ+ed0MTVA++5ZKmlUcmDGBv2vUI/REn6FuIdixLNnQT+vKusE2hhTk2is3cFvv5wA+Sgg=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
+    <!-- OpenCV.js -->
+    <!-- <script async src="https://docs.opencv.org/master/opencv.js" onload="onOpenCvReady();"
+        type="text/javascript"></script> -->
+
+    <script src="./js/opencv.js"></script>
+
+    <!-- Custom JS -->
     <script>
         var animation = bodymovin.loadAnimation({
             container: document.querySelector('.lottie__container'),
@@ -132,20 +159,76 @@
             loop: true,
             autoplay: true,
             path: './js/lottiefiles/images-animation.json'
-        })
-    </script>
+        });
 
-    <!-- Custom JS -->
-    <script>
+        const inputImage = document.getElementById('inputImage');
+        const uploadedImage = document.getElementById('uploadedImage');
+        const processedImage = document.getElementById('processedImage');
+        const operationSelect = document.getElementById('operationSelect');
+
+        function processImage() {
+            if (!cv) {
+                alert('OpenCV.js not loaded yet. Please wait a moment and try again.');
+                return;
+            }
+
+            const selectedOperation = operationSelect.value;
+
+            if (!inputImage.files[0]) {
+                alert('Please upload an image.');
+                return;
+            }
+
+            const src = cv.imread(uploadedImage);
+            const dst = new cv.Mat();
+
+            switch (selectedOperation) {
+                case 'grayscale':
+                    cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY, 0);
+                    break;
+                case 'colorRangeFilter':
+                    // Define lower and upper color bounds for filtering (example: green color range)
+                    let lowerBound = new cv.Mat(src.rows, src.cols, src.type(), [0, 100, 0, 0]);
+                    let upperBound = new cv.Mat(src.rows, src.cols, src.type(), [50, 255, 50, 255]);
+
+                    // Create a binary mask based on the color range
+                    let mask = new cv.Mat();
+                    cv.inRange(src, lowerBound, upperBound, mask);
+
+                    // Apply the mask to the original image
+                    cv.bitwise_and(src, src, dst, mask);
+
+                    // Free memory
+                    lowerBound.delete();
+                    upperBound.delete();
+                    mask.delete();
+                    break;
+            }
+
+            cv.imshow(processedImage, dst);
+
+            src.delete();
+            dst.delete();
+        }
+
+        // Ensure onOpenCvReady is defined
+        function onOpenCvReady() {
+            // Optional: Add any initialization logic here
+        }
+
         const imageForm = document.querySelector('#imageForm');
-        const inputImage = document.querySelector('#inputImage');
-        const uploadedImage = document.querySelector('#uploadedImage');
         imageForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            console.log(inputImage.value);
+            processImage();
+        });
+
+        inputImage.addEventListener('change', () => {
             uploadedImage.src = URL.createObjectURL(inputImage.files[0]);
-        })  
+            processedImage.src = ''; // Clear processed image when a new image is uploaded
+        });
     </script>
+
+
 </body>
 
 </html>
