@@ -93,15 +93,27 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="inputoutput">
-                        <img id="imageSrc" alt="No Image" />
-                        <div class="caption">imageSrc <input type="file" class="w-100" id="fileInput" name="file" />
-                        </div>
+                        <img id="imageSrc" alt="No Image" class="w-100" />
+                        <input type="file" class="w-100 my-3" id="fileInput" name="file" />
+                        <select class="form-select" name="selectedOperation" id="selectedOperation">
+                            <option disabled selected>Select operation</option>
+                            <option value="sketch">sketch</option>
+                            <option value="oily">oily</option>
+                            <option value="laplacian">laplacian</option>
+                            <option value="show">Original Image</option>
+                            <option value="rgb2gray">rgb2gray</option>
+                            <option value="edges">edges</option>
+                            <option value="watershed">watershed</option>
+                            <option value="inRange">inRange</option>
+                            <option value="resize">resize</option>
+                            <option value="foreground">foreground</option>
+                        </select>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="inputoutput">
-                        <canvas id="canvasOutput"></canvas>
-                        <div class="caption">canvasOutput</div>
+                        <canvas id="canvasOutput" class=""></canvas>
+                        <!-- <div class="caption">canvasOutput</div> -->
                     </div>
                 </div>
             </div>
@@ -139,18 +151,232 @@
     <script type="text/javascript">
         let imgElement = document.getElementById('imageSrc');
         let inputElement = document.getElementById('fileInput');
+        let operation = document.getElementById('selectedOperation');
+
+
+
         inputElement.addEventListener('change', (e) => {
             imgElement.src = URL.createObjectURL(e.target.files[0]);
         }, false);
-        imgElement.onload = function () {
-            let mat = cv.imread(imgElement);
-            cv.imshow('canvasOutput', mat);
-            mat.delete();
-        };
-        var Module = {
-            // https://emscripten.org/docs/api_reference/module.html#Module.onRuntimeInitialized
-            onRuntimeInitialized() {
 
+        operation.addEventListener('change', (e) => {
+            const selectedOperation = e.target.value;
+
+            switch (selectedOperation) {
+                case 'show':
+                    // Display the original image
+                    let matShow = cv.imread(imgElement);
+                    cv.imshow('canvasOutput', matShow);
+                    matShow.delete();
+                    break;
+
+                case 'rgb2gray':
+                    // Convert the image to grayscale
+                    let srcGray = cv.imread('imageSrc');
+                    let dstGray = new cv.Mat();
+                    cv.cvtColor(srcGray, dstGray, cv.COLOR_RGBA2GRAY, 0);
+                    cv.imshow('canvasOutput', dstGray);
+                    srcGray.delete(); dstGray.delete();
+                    break;
+
+                case 'inRange':
+                    // Apply cv.inRange with specified low and high values
+                    let srcInRange = cv.imread(imgElement);  // Use imgElement here
+                    let dstInRange = new cv.Mat();
+                    let low = new cv.Mat(srcInRange.rows, srcInRange.cols, srcInRange.type(), [0, 0, 0, 0]);
+                    let high = new cv.Mat(srcInRange.rows, srcInRange.cols, srcInRange.type(), [150, 150, 150, 255]);
+                    cv.inRange(srcInRange, low, high, dstInRange);
+                    cv.imshow('canvasOutput', dstInRange);
+                    srcInRange.delete(); dstInRange.delete(); low.delete(); high.delete();
+                    break;
+
+                // Add more cases for other operations if needed
+                case 'resize':
+                    // Resize the image
+                    let srcResize = cv.imread(imgElement);
+                    let dstResize = new cv.Mat();
+                    let dsize = new cv.Size(200, 200);
+                    cv.resize(srcResize, dstResize, dsize, 0, 0, cv.INTER_AREA);
+                    cv.imshow('canvasOutput', dstResize);
+                    srcResize.delete(); dstResize.delete();
+                    break;
+
+                case 'sketch':
+                    // Apply artistic effect
+                    let srcArtistic = cv.imread(imgElement);
+                    let dstArtistic = new cv.Mat();
+                    cv.cvtColor(srcArtistic, srcArtistic, cv.COLOR_RGBA2GRAY, 0);
+                    cv.adaptiveThreshold(srcArtistic, dstArtistic, 200, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 3, 2);
+                    cv.imshow('canvasOutput', dstArtistic);
+                    srcArtistic.delete(); dstArtistic.delete();
+                    break;
+
+                case 'oily':
+                    // Apply oily effect
+                    let srcOily = cv.imread(imgElement);
+                    let dstOily = new cv.Mat();
+                    cv.cvtColor(srcOily, srcOily, cv.COLOR_RGBA2RGB, 0);
+                    cv.bilateralFilter(srcOily, dstOily, 9, 75, 75, cv.BORDER_DEFAULT);
+                    cv.imshow('canvasOutput', dstOily);
+                    srcOily.delete(); dstOily.delete();
+                    break;
+
+                case 'laplacian':
+                    // Apply laplacian effect
+                    let srcLaplacian = cv.imread(imgElement);
+                    let dstLaplacian = new cv.Mat();
+                    cv.cvtColor(srcLaplacian, srcLaplacian, cv.COLOR_RGB2GRAY, 0);
+                    cv.Laplacian(srcLaplacian, dstLaplacian, cv.CV_8U, 1, 1, 0, cv.BORDER_DEFAULT);
+                    cv.imshow('canvasOutput', dstLaplacian);
+                    srcLaplacian.delete(); dstLaplacian.delete();
+                    break;
+
+                case 'edges':
+                    // Apply edges effect
+                    let srcEdges = cv.imread(imgElement);
+                    let dstEdges = new cv.Mat();
+                    cv.cvtColor(srcEdges, srcEdges, cv.COLOR_RGB2GRAY, 0);
+                    cv.Canny(srcEdges, dstEdges, 50, 100, 3, false);
+                    cv.imshow('canvasOutput', dstEdges);
+                    srcEdges.delete(); dstEdges.delete();
+                    break;
+
+                case 'watershed':
+                    // Apply watershed effect
+                    let srcWatershed = cv.imread(imgElement);
+                    let dstWatershed = new cv.Mat();
+                    let grayWatershed = new cv.Mat();
+                    let openingWatershed = new cv.Mat();
+                    let coinsBgWatershed = new cv.Mat();
+                    let coinsFgWatershed = new cv.Mat();
+                    let distTransWatershed = new cv.Mat();
+                    let unknownWatershed = new cv.Mat();
+                    let markersWatershed = new cv.Mat();
+
+                    // Convert to grayscale and apply threshold
+                    cv.cvtColor(srcWatershed, grayWatershed, cv.COLOR_RGBA2GRAY, 0);
+                    cv.threshold(grayWatershed, grayWatershed, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
+
+                    // Get background
+                    let MWatershed = cv.Mat.ones(3, 3, cv.CV_8U);
+                    cv.erode(grayWatershed, grayWatershed, MWatershed);
+                    cv.dilate(grayWatershed, openingWatershed, MWatershed);
+                    cv.dilate(openingWatershed, coinsBgWatershed, MWatershed, new cv.Point(-1, -1), 3);
+
+                    // Distance transform
+                    cv.distanceTransform(openingWatershed, distTransWatershed, cv.DIST_L2, 5);
+                    cv.normalize(distTransWatershed, distTransWatershed, 1, 0, cv.NORM_INF);
+
+                    // Get foreground
+                    cv.threshold(distTransWatershed, coinsFgWatershed, 0.7 * 1, 255, cv.THRESH_BINARY);
+                    coinsFgWatershed.convertTo(coinsFgWatershed, cv.CV_8U, 1, 0);
+                    cv.subtract(coinsBgWatershed, coinsFgWatershed, unknownWatershed);
+
+                    // Get connected components markers
+                    cv.connectedComponents(coinsFgWatershed, markersWatershed);
+                    for (let i = 0; i < markersWatershed.rows; i++) {
+                        for (let j = 0; j < markersWatershed.cols; j++) {
+                            markersWatershed.intPtr(i, j)[0] = markersWatershed.ucharPtr(i, j)[0] + 1;
+                            if (unknownWatershed.ucharPtr(i, j)[0] == 255) {
+                                markersWatershed.intPtr(i, j)[0] = 0;
+                            }
+                        }
+                    }
+
+                    // Convert to RGB
+                    cv.cvtColor(srcWatershed, srcWatershed, cv.COLOR_RGBA2RGB, 0);
+
+                    // Apply watershed
+                    cv.watershed(srcWatershed, markersWatershed);
+
+                    // Draw barriers
+                    for (let i = 0; i < markersWatershed.rows; i++) {
+                        for (let j = 0; j < markersWatershed.cols; j++) {
+                            if (markersWatershed.intPtr(i, j)[0] == -1) {
+                                srcWatershed.ucharPtr(i, j)[0] = 255; // R
+                                srcWatershed.ucharPtr(i, j)[1] = 0;   // G
+                                srcWatershed.ucharPtr(i, j)[2] = 0;   // B
+                            }
+                        }
+                    }
+
+                    // Display the result
+                    cv.imshow('canvasOutput', srcWatershed);
+
+                    // Clean up
+                    srcWatershed.delete();
+                    dstWatershed.delete();
+                    grayWatershed.delete();
+                    openingWatershed.delete();
+                    coinsBgWatershed.delete();
+                    coinsFgWatershed.delete();
+                    distTransWatershed.delete();
+                    unknownWatershed.delete();
+                    markersWatershed.delete();
+                    MWatershed.delete();
+                    break;
+
+
+                case 'foreground':
+                    // Apply foreground extraction
+                    let srcForeground = cv.imread(imgElement);
+                    cv.cvtColor(srcForeground, srcForeground, cv.COLOR_RGBA2RGB, 0);
+
+                    let maskForeground = new cv.Mat();
+                    let bgdModelForeground = new cv.Mat();
+                    let fgdModelForeground = new cv.Mat();
+                    let rectForeground = new cv.Rect(50, 50, 260, 280);
+
+                    cv.grabCut(srcForeground, maskForeground, rectForeground, bgdModelForeground, fgdModelForeground, 1, cv.GC_INIT_WITH_RECT);
+
+                    // Draw foreground
+                    for (let i = 0; i < srcForeground.rows; i++) {
+                        for (let j = 0; j < srcForeground.cols; j++) {
+                            if (maskForeground.ucharPtr(i, j)[0] == 0 || maskForeground.ucharPtr(i, j)[0] == 2) {
+                                srcForeground.ucharPtr(i, j)[0] = 0;
+                                srcForeground.ucharPtr(i, j)[1] = 0;
+                                srcForeground.ucharPtr(i, j)[2] = 0;
+                            }
+                        }
+                    }
+
+                    // Draw grab rect
+                    let colorForeground = new cv.Scalar(0, 0, 255);
+                    let point1Foreground = new cv.Point(rectForeground.x, rectForeground.y);
+                    let point2Foreground = new cv.Point(rectForeground.x + rectForeground.width, rectForeground.y + rectForeground.height);
+                    cv.rectangle(srcForeground, point1Foreground, point2Foreground, colorForeground);
+
+                    // Display the result
+                    cv.imshow('canvasOutput', srcForeground);
+
+                    // Clean up
+                    srcForeground.delete();
+                    maskForeground.delete();
+                    bgdModelForeground.delete();
+                    fgdModelForeground.delete();
+                    rectForeground.delete();
+                    break;
+
+
+
+                default:
+                    console.log('Invalid operation');
+                    break;
+            }
+        }, false);
+
+
+
+
+
+        // imgElement.onload = function () {
+        //     let mat = cv.imread(imgElement);
+        //     cv.imshow('canvasOutput', mat);
+        //     mat.delete();
+        // };
+        var Module = {
+            onRuntimeInitialized() {
+                console.log('OpenCV.js is ready!');
             }
         };
     </script>
